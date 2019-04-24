@@ -3,39 +3,36 @@
 import sys
 from random import randint
 
-size = 20 # square size
+size      = 20 # square size
 minecount = 20
 remaining = minecount
 
 # try to avoid stack overflow
 sys.setrecursionlimit(size * size * 10)
 
+# grid markers
+clear  = ''
 opaque = "."
-bomb = "X"
-clear = ''
-mark = 'B'
+bomb   = "X"
+mark   = 'B'
 
 # we have 2 grids, one for the placement of the mines,
 # the other for the display of what has been uncovered
-mines = [[clear for x in range(size)] for y in range (size)]
+mines    = [[clear  for x in range(size)] for y in range (size)]
 revealed = [[opaque for x in range(size)] for y in range (size)]
 
 def is_a_bomb(x, y):
-    try:
-        # negatives work from end, so not throwing exception
-        if (x < 0) or (y < 0):
-            return 0
-        return 1 if (mines[y][x] == bomb) else 0
-    except:
-        return 0
+    boom = ((0 < x < size) and (0 < y < size) and (mines[y][x] == bomb))
+    return 1 if boom else 0
 
 def nearby(x, y):
     # skip if the square is a bomb itself
     if (is_a_bomb(x, y) == 1):
         return 0 
 
+    # clockwise evaluation makes it clear all neighbors are checked
+
     count = 0
-    # clockwise evaluation
     count += is_a_bomb(x,   y-1) # top
     count += is_a_bomb(x+1, y-1) # top-right
     count += is_a_bomb(x+1, y)   # right
@@ -46,8 +43,8 @@ def nearby(x, y):
     count += is_a_bomb(x-1, y-1) # top-left
     return count
 
-# populate with bombs
 def populate():
+    # populate with bombs
     todo = minecount
     while todo > 0:
         row = randint(0, size-1)
@@ -75,10 +72,6 @@ def print_grid(matrix):
             print("{:>3s}".format(str(col)), end='')
         print("")
         
-
-def kablooey(x, y):
-    print(" BOOM! {},{} has a mine".format(x+1, y+1))
-    print_grid(mines)
 
 def outside(x, y):
     return ((x < 0) or (y < 0) or (x >= size) or (y >= size))
@@ -116,6 +109,8 @@ def guess():
     while True:
         print()
         s = input("({}) [b] row col (q to quit): ".format(remaining))
+        s = s.strip()
+        print ("GUEES '{}'".format(s))
         if len(s) == 0:
             print_grid(revealed)
             continue
@@ -131,9 +126,10 @@ def guess():
             if s[0] in ('b', 'B'):
                 defuse = True
                 s = s[1:].strip()
-            row, col = s.split(" ")
+            row, col = s.split()
             x = int(col)
             y = int(row)
+            # internally 0 based offset, but 1 based for user interaction
             if (x < 1) or (x > size):
                 print("col: {} -- out of range (1 - {})".format(col, size))
                 continue
@@ -151,18 +147,29 @@ def confirm():
                 return "There is not a bomb at {},{}".format(x+1, y+1)
     return "Congratulations! You swept the mines!"
 
-populate()
-while remaining > 0:
-   print_grid(revealed)
-   defuse, row, col = guess()
-   if defuse:
-        remaining -= 1
-        revealed[row][col] = mark
-        continue
-   if mines[row][col] == bomb:
-       kablooey(col, row)
-       sys.exit(1)
-   clear_tiles(col, row)
+def game():
+    global remaining
+    populate()
+    while remaining > 0:
+        print_grid(revealed)
+        defuse, row, col = guess()
+        if defuse:
+            remaining -= 1
+            revealed[row][col] = mark
+            continue
 
-print(confirm())
+        if mines[row][col] == bomb:
+            print(" BOOM! {},{} has a mine".format(col+1, row+1))
+            print_grid(mines)
+            sys.exit(1)
 
+        # clearing a marked bomb?
+        if revealed[row][col] == mark:
+            remaining += 1
+
+        clear_tiles(col, row)
+
+    # game complete, show results
+    print(confirm())
+
+game()
