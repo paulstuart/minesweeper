@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"math/rand"
 	"os"
@@ -143,6 +144,7 @@ func wipe(g grid) grid {
 	}
 	return g
 }
+
 func NewBoard(size, count int) *Board {
 	return &Board{
 		Mines:     populate(size, count, newGrid(size)),
@@ -185,13 +187,18 @@ func (g grid) nearby(x, y int) int {
 func main() {
 	size := 10
 	count := 5
-	board := NewBoard(size, count)
-	//board.Display()
-	/*
-		board.Mines.show()
-		board.Shown.show()
-	*/
 
+	flag.IntVar(&size, "size", size, "grid size")
+	flag.IntVar(&count, "count", count, "number of mines")
+	flag.Parse()
+
+	// make sure input was valid (was passing args w/o flags and ignoring it
+	if len(flag.Args()) > 0 {
+		fmt.Println("unknown args:", flag.Args())
+		os.Exit(1)
+	}
+
+	board := NewBoard(size, count)
 	for board.Move() {
 	}
 }
